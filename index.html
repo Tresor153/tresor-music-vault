@@ -1,54 +1,452 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tchakam Tresor Maluvnu</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRESOR — Music Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Archivo+Black&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #c8a84b;
+      --gold-dim: #7a621e;
+      --steel: #1c1f24;
+      --steel-mid: #272b33;
+      --steel-light: #363c47;
+      --chrome: #8a95a3;
+      --chrome-bright: #d0dae6;
+      --bg: #0d0f12;
+      --text: #e8ecf0;
+      --text-dim: #6b7585;
+      --green: #27ae60;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+      padding-bottom: 120px;
+    }
+ 
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .035; pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 9998;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.15) 2px, rgba(0,0,0,.15) 4px);
+      pointer-events: none;
+    }
+ 
+    /* HEADER */
+    header {
+      border-bottom: 2px solid var(--gold);
+      padding: 1.5rem 4rem;
+      display: flex; align-items: center; gap: 2rem;
+      background: linear-gradient(180deg,#13161a 0%,transparent 100%);
+    }
+    .vault-logo { width: 60px; height: 60px; animation: spin 14s linear infinite; flex-shrink:0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .header-text h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem,5vw,4.5rem);
+      letter-spacing: .08em; color: var(--gold); line-height: 1;
+      text-shadow: 0 0 40px rgba(200,168,75,.35);
+    }
+    .header-text .tagline { font-size:.68rem; letter-spacing:.3em; color:var(--chrome); margin-top:.2rem; }
+    .header-right { margin-left:auto; text-align:right; }
+    .status-dot {
+      display:inline-block; width:8px; height:8px; border-radius:50%;
+      background:var(--green); margin-right:.4rem;
+      box-shadow:0 0 8px var(--green); animation:blink 1.8s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .sys-lbl { font-size:.65rem; color:var(--text-dim); letter-spacing:.18em; }
+ 
+    /* TICKER */
+    .ticker {
+      border-top:1px solid var(--steel-light); border-bottom:1px solid var(--steel-light);
+      background:var(--steel); overflow:hidden; padding:.65rem 0; white-space:nowrap;
+    }
+    .ticker-inner {
+      display:inline-block; animation:tick 35s linear infinite;
+      font-size:.7rem; letter-spacing:.22em; color:var(--gold);
+    }
+    @keyframes tick { to { transform:translateX(-50%); } }
+ 
+    /* HIDDEN YT PLAYER */
+    #yt-container {
+      position:fixed; width:1px; height:1px; opacity:0;
+      pointer-events:none; z-index:-1; bottom:130px; right:0;
+    }
+ 
+    /* CATEGORIES */
+    .categories { padding:2rem 4rem 1rem; display:flex; gap:.8rem; flex-wrap:wrap; }
+    .cat-btn {
+      background:none; border:1px solid var(--steel-light);
+      color:var(--chrome); font-family:'Share Tech Mono',monospace;
+      font-size:.68rem; letter-spacing:.2em; padding:.45rem 1.1rem;
+      cursor:pointer; text-transform:uppercase; transition:all .2s;
+    }
+    .cat-btn:hover, .cat-btn.active {
+      border-color:var(--gold); color:var(--gold);
+      background:rgba(200,168,75,.06);
+    }
+ 
+    /* SECTION HEADER */
+    .section-header { padding:1rem 4rem .8rem; display:flex; align-items:baseline; gap:1.2rem; }
+    .section-header h3 { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:.08em; color:var(--gold); }
+    .section-header .count { font-size:.72rem; color:var(--text-dim); letter-spacing:.18em; }
+ 
+    /* TRACKS GRID */
+    .tracks-grid {
+      padding:0 4rem 2rem;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+      gap:1.2rem;
+    }
+ 
+    .track-card {
+      background:var(--steel); border:1px solid var(--steel-light);
+      padding:1.4rem; position:relative; overflow:hidden;
+      clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);
+      cursor:pointer; transition:border-color .25s, transform .2s;
+    }
+    .track-card::before {
+      content:''; position:absolute; top:0; left:-100%;
+      width:60%; height:1px;
+      background:linear-gradient(90deg,transparent,var(--gold),transparent);
+      transition:left .5s;
+    }
+    .track-card:hover { border-color:var(--gold); transform:translateY(-3px); }
+    .track-card:hover::before { left:120%; }
+    .track-card.playing { border-color:var(--gold); background:#1f2229; }
+ 
+    .thumb-placeholder {
+      width:100%; aspect-ratio:16/9; margin-bottom:1rem;
+      background:linear-gradient(135deg,var(--steel-mid),var(--steel));
+      border:1px solid var(--steel-light);
+      display:flex; align-items:center; justify-content:center;
+      font-size:2.5rem; color:var(--gold-dim);
+      transition: color .2s;
+    }
+    .track-card.playing .thumb-placeholder { color:var(--gold); }
+ 
+    .track-num { font-size:.62rem; color:var(--text-dim); letter-spacing:.22em; margin-bottom:.6rem; }
+    .track-title { font-family:'Archivo Black',sans-serif; font-size:1rem; color:var(--chrome-bright); margin-bottom:.3rem; }
+    .track-artist { font-size:.72rem; color:var(--chrome); margin-bottom:1rem; }
+ 
+    .waveform { display:flex; align-items:flex-end; gap:2px; height:24px; margin-bottom:.9rem; }
+    .waveform span { display:block; width:3px; background:var(--steel-light); border-radius:2px; transition:background .2s; }
+    .track-card:hover .waveform span { background:var(--gold-dim); }
+    .track-card.playing .waveform span { background:var(--gold); animation:wave .6s ease-in-out infinite alternate; }
+    .track-card.playing .waveform span:nth-child(2n) { animation-delay:.15s; }
+    .track-card.playing .waveform span:nth-child(3n) { animation-delay:.3s; }
+    @keyframes wave { to { transform:scaleY(1.8); } }
+ 
+    .track-footer { display:flex; justify-content:space-between; align-items:center; }
+    .track-genre { font-size:.6rem; color:var(--gold); letter-spacing:.18em; border:1px solid var(--gold-dim); padding:.18rem .55rem; }
+    .track-dur { font-size:.68rem; color:var(--text-dim); }
+ 
+    .play-btn {
+      position:absolute; top:1rem; right:1rem;
+      width:34px; height:34px; border-radius:50%;
+      border:2px solid var(--gold-dim);
+      display:flex; align-items:center; justify-content:center;
+      color:var(--gold); font-size:.9rem;
+      transition:background .2s, border-color .2s;
+      background:rgba(13,15,18,.7);
+    }
+    .track-card:hover .play-btn, .track-card.playing .play-btn {
+      background:var(--gold); color:var(--bg); border-color:var(--gold);
+    }
+ 
+    /* NOW PLAYING */
+    .now-playing {
+      position:fixed; bottom:0; left:0; right:0; z-index:200;
+      background:linear-gradient(0deg,#090b0d 0%,rgba(9,11,13,.96) 100%);
+      border-top:2px solid var(--gold);
+      padding:1rem 4rem;
+      display:flex; align-items:center; gap:2rem;
+      backdrop-filter:blur(16px);
+    }
+    .np-info { min-width:180px; }
+    .np-lbl { font-size:.58rem; letter-spacing:.28em; color:var(--text-dim); margin-bottom:.3rem; }
+    .np-title { font-family:'Archivo Black',sans-serif; font-size:.9rem; color:var(--chrome-bright); }
+    .np-artist { font-size:.68rem; color:var(--chrome); }
+ 
+    .np-progress { flex:1; height:4px; background:var(--steel-light); position:relative; cursor:pointer; }
+    .np-fill {
+      height:100%; background:linear-gradient(90deg,var(--gold),#e8c66a);
+      width:0%; position:relative;
+    }
+    .np-fill::after {
+      content:''; position:absolute; right:-5px; top:50%; transform:translateY(-50%);
+      width:10px; height:10px; border-radius:50%;
+      background:var(--gold); box-shadow:0 0 8px var(--gold);
+    }
+    .np-time { font-size:.65rem; color:var(--text-dim); white-space:nowrap; }
+    .np-controls { display:flex; align-items:center; gap:1rem; }
+    .np-btn { background:none; border:none; cursor:pointer; color:var(--chrome); font-size:1rem; transition:color .2s; }
+    .np-btn:hover { color:var(--gold); }
+    .np-btn.main {
+      width:42px; height:42px; border-radius:50%;
+      border:2px solid var(--gold); color:var(--gold);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; transition:background .2s;
+    }
+    .np-btn.main:hover { background:var(--gold); color:var(--bg); }
+ 
+    .np-vol { display:flex; align-items:center; gap:.6rem; font-size:.8rem; color:var(--text-dim); }
+    .vol-track { width:70px; height:3px; background:var(--steel-light); position:relative; cursor:pointer; }
+    .vol-fill { height:100%; width:80%; background:var(--gold); }
+ 
+    .deco { width:100%; height:1px; background:linear-gradient(90deg,transparent,var(--gold-dim) 30%,var(--gold) 50%,var(--gold-dim) 70%,transparent); margin:1.5rem 0; }
+ 
+    @media(max-width:760px){
+      header { padding:1.2rem; }
+      .categories,.section-header,.tracks-grid { padding-left:1.2rem; padding-right:1.2rem; }
+      .now-playing { padding:1rem 1.2rem; gap:1rem; }
+      .np-vol { display:none; }
+      .np-info { min-width:100px; }
+    }
+  </style>
 </head>
-
 <body>
-    <!-- Login Box -->
-    <div id="login_box" class="box">
-        <img src="img/logo.png" width="64" align="absmiddle" alt="Logo">
-        <span id="logo_name">Green Banking</span>
-        <h1>Willkommen</h1>
-        <h2>Bitte geben Sie ihre Green Banking ID ein:</h2>
-        <p>
-            <input type="text" name="user_id" class="login" placeholder="&#127380;">
-        </p>
-        <p>
-            <button type="button" class="login">Weiter</button>
-        </p>
-        <p>
-            <a href="#">Zugangsdaten Vergessen?</a>
-        </p>
-    </div>
-
-    <!-- Info Box -->
-    <div id="info_box" class="box">
-        <h2>Green Banking & Green Finance</h2>
-        <p>
-            Wir orientieren uns an den <a href="download/GPB.pdf" target="_blank">Green Principles Bond</a>.
-        </p>
-        <ul>
-            <li>Ausschließlich umweltbewusste Investitionen</li>
-            <li>Transparenz durch Kontrolle und Reporting</li>
-            <li>Faire Bedingungen für alle Beteiligten</li>
-        </ul>
-        <hr>
-        <h2>&#128680;Sicherheitshinweise</h2>
-        <p>
-            Aktuell wird ein erhöhtes Aufkommen von Anrufen falscher Bankmitarbeiter festgestellt!
-        </p>
-        <h2>&#127811;Schnelle Hilfe und Service</h2>
-        <p>
-            Hier finden Sie unsere Services und Hilfe zu Ihrem Online-Banking.
-        </p>
-        <h2>&#128274;Unsere Sicherheitsverfahren</h2>
-    </div>
+ 
+<div id="yt-container"><div id="yt-player"></div></div>
+ 
+<!-- HEADER -->
+<header>
+  <svg class="vault-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#c8a84b" stroke-width="4"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="#7a621e" stroke-width="2"/>
+    <circle cx="50" cy="50" r="14" fill="#1c1f24" stroke="#c8a84b" stroke-width="3"/>
+    <line x1="50" y1="4"  x2="50" y2="20" stroke="#c8a84b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="50" y1="80" x2="50" y2="96" stroke="#c8a84b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="4"  y1="50" x2="20" y2="50" stroke="#c8a84b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="80" y1="50" x2="96" y2="50" stroke="#c8a84b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="18" y1="18" x2="29" y2="29" stroke="#7a621e" stroke-width="2" stroke-linecap="round"/>
+    <line x1="71" y1="71" x2="82" y2="82" stroke="#7a621e" stroke-width="2" stroke-linecap="round"/>
+    <line x1="82" y1="18" x2="71" y2="29" stroke="#7a621e" stroke-width="2" stroke-linecap="round"/>
+    <line x1="18" y1="82" x2="29" y2="71" stroke="#7a621e" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="50" cy="50" r="6" fill="#c8a84b"/>
+  </svg>
+  <div class="header-text">
+    <h1>TRESOR</h1>
+    <div class="tagline">Music Vault · Secure Your Sound · Berlin</div>
+  </div>
+  <div class="header-right">
+    <div class="sys-lbl"><span class="status-dot"></span>SYSTEM ONLINE</div>
+    <div class="sys-lbl" style="margin-top:.3rem">VAULT ACCESS: GRANTED</div>
+  </div>
+</header>
+ 
+<div class="ticker">
+  <span class="ticker-inner">
+    &nbsp;⬡ TRESOR MUSIC VAULT &nbsp;·&nbsp; ECHTER SOUND · ECHTE MUSIK &nbsp;·&nbsp; TECHNO · AMBIENT · INDUSTRIAL · ELECTRONIC · EXPERIMENTAL &nbsp;·&nbsp; VAULT SEQUENCE AKTIV &nbsp;·&nbsp; SECURE YOUR SOUND &nbsp;·&nbsp; BERLIN-BASED &nbsp;·&nbsp; TRESOR MUSIC VAULT &nbsp;·&nbsp; ECHTER SOUND · ECHTE MUSIK &nbsp;·&nbsp; TECHNO · AMBIENT · INDUSTRIAL · ELECTRONIC · EXPERIMENTAL &nbsp;·&nbsp; VAULT SEQUENCE AKTIV &nbsp;·&nbsp; SECURE YOUR SOUND &nbsp;·&nbsp; BERLIN-BASED &nbsp;&nbsp;
+  </span>
+</div>
+ 
+<div class="deco"></div>
+ 
+<div class="categories">
+  <button class="cat-btn active" data-filter="ALL">Alle Tracks</button>
+  <button class="cat-btn" data-filter="TECHNO">Techno</button>
+  <button class="cat-btn" data-filter="AMBIENT">Ambient</button>
+  <button class="cat-btn" data-filter="INDUSTRIAL">Industrial</button>
+  <button class="cat-btn" data-filter="ELECTRONIC">Electronic</button>
+  <button class="cat-btn" data-filter="EXPERIMENTAL">Experimental</button>
+</div>
+ 
+<div class="section-header">
+  <h3>Vault Contents</h3>
+  <span class="count" id="trackCount">// 12 TRACKS GESICHERT</span>
+</div>
+ 
+<div class="tracks-grid" id="tracksGrid"></div>
+ 
+<!-- NOW PLAYING -->
+<div class="now-playing">
+  <div class="np-info">
+    <div class="np-lbl">// JETZT SPIELT</div>
+    <div class="np-title" id="npTitle">— Wähle einen Track —</div>
+    <div class="np-artist" id="npArtist"></div>
+  </div>
+  <div class="np-progress" id="npProgress">
+    <div class="np-fill" id="npFill"></div>
+  </div>
+  <div class="np-time" id="npTime">0:00 / 0:00</div>
+  <div class="np-controls">
+    <button class="np-btn" id="btnPrev">⏮</button>
+    <button class="np-btn main" id="btnPlay">▶</button>
+    <button class="np-btn" id="btnNext">⏭</button>
+  </div>
+  <div class="np-vol">
+    🔊
+    <div class="vol-track" id="volTrack"><div class="vol-fill" id="volFill"></div></div>
+  </div>
+</div>
+ 
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const tracks = [
+  { id:"001", title:"Strings Of Life",   artist:"Rhythim Is Rhythim", genre:"ELECTRONIC",  ytId:"PaHuqoaILno", dur:"7:22" },
+  { id:"002", title:"Spastik",           artist:"Plastikman",         genre:"TECHNO",       ytId:"7hMBdKhBVGE", dur:"9:44" },
+  { id:"003", title:"No UFOs",           artist:"Model 500",          genre:"TECHNO",       ytId:"6IhJGKJZFLw", dur:"6:31" },
+  { id:"004", title:"Windowlicker",      artist:"Aphex Twin",         genre:"EXPERIMENTAL", ytId:"UBS4Gi1y_nc", dur:"6:01" },
+  { id:"005", title:"Xtal",             artist:"Aphex Twin",         genre:"AMBIENT",      ytId:"zxjCd5egMT4", dur:"4:53" },
+  { id:"006", title:"Porcelain",         artist:"Moby",               genre:"ELECTRONIC",   ytId:"5N0PNpOUCmA", dur:"4:01" },
+  { id:"007", title:"Da Funk",           artist:"Daft Punk",          genre:"ELECTRONIC",   ytId:"ZX-mt_KFrlM", dur:"5:28" },
+  { id:"008", title:"Flat Beat",         artist:"Mr. Oizo",           genre:"TECHNO",       ytId:"B-bjzioMaEo", dur:"3:38" },
+  { id:"009", title:"Sweed",            artist:"Pan Sonic",          genre:"INDUSTRIAL",   ytId:"IQvqeRWl-bA", dur:"5:12" },
+  { id:"010", title:"Nude Photo",        artist:"Rhythim Is Rhythim", genre:"TECHNO",       ytId:"FU4UzNnYSZY", dur:"6:17" },
+  { id:"011", title:"We Have Arrived",   artist:"Moodyman",           genre:"ELECTRONIC",   ytId:"4LdCql3Bv14", dur:"7:03" },
+  { id:"012", title:"Flim",             artist:"Aphex Twin",         genre:"AMBIENT",      ytId:"7FSlufMQmrY", dur:"3:06" },
+];
+ 
+let player = null, currentIdx = -1, isPlaying = false, progressTimer = null, volume = 80;
+ 
+// Build cards
+function makeWave() {
+  return Array.from({length:18}, () =>
+    `<span style="height:${Math.floor(Math.random()*20)+4}px"></span>`
+  ).join('');
+}
+ 
+const grid = document.getElementById('tracksGrid');
+tracks.forEach((t, i) => {
+  const card = document.createElement('div');
+  card.className = 'track-card';
+  card.dataset.genre = t.genre;
+  card.dataset.idx = i;
+  card.innerHTML = `
+    <div class="thumb-placeholder">♪</div>
+    <button class="play-btn">▶</button>
+    <div class="track-num">// TRACK ${t.id}</div>
+    <div class="track-title">${t.title}</div>
+    <div class="track-artist">${t.artist}</div>
+    <div class="waveform">${makeWave()}</div>
+    <div class="track-footer">
+      <span class="track-genre">${t.genre}</span>
+      <span class="track-dur">${t.dur}</span>
+    </div>`;
+  card.addEventListener('click', () => loadTrack(i));
+  grid.appendChild(card);
+});
+ 
+// YouTube API
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('yt-player', {
+    height:'1', width:'1',
+    playerVars:{ autoplay:0, controls:0, modestbranding:1, rel:0 },
+    events:{ onReady: e => e.target.setVolume(volume), onStateChange: onState }
+  });
+}
+ 
+function onState(e) {
+  const S = YT.PlayerState;
+  if (e.data === S.PLAYING) {
+    isPlaying = true;
+    document.getElementById('btnPlay').textContent = '⏸';
+    startProgress();
+  } else if (e.data === S.PAUSED) {
+    isPlaying = false;
+    document.getElementById('btnPlay').textContent = '▶';
+    clearInterval(progressTimer);
+  } else if (e.data === S.ENDED) {
+    nextTrack();
+  }
+}
+ 
+function loadTrack(idx) {
+  if (!player || !player.loadVideoById) { setTimeout(()=>loadTrack(idx),500); return; }
+  document.querySelectorAll('.track-card.playing').forEach(c => {
+    c.classList.remove('playing');
+    c.querySelector('.play-btn').textContent = '▶';
+  });
+  currentIdx = idx;
+  const t = tracks[idx];
+  const cards = document.querySelectorAll('.track-card');
+  cards[idx].classList.add('playing');
+  cards[idx].querySelector('.play-btn').textContent = '⏸';
+  document.getElementById('npTitle').textContent = t.title;
+  document.getElementById('npArtist').textContent = t.artist;
+  document.getElementById('npFill').style.width = '0%';
+  player.loadVideoById(t.ytId);
+}
+ 
+function startProgress() {
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    if (!player || !player.getCurrentTime) return;
+    const cur = player.getCurrentTime()||0;
+    const dur = player.getDuration()||1;
+    document.getElementById('npFill').style.width = (cur/dur*100)+'%';
+    document.getElementById('npTime').textContent = fmt(cur)+' / '+fmt(dur);
+  }, 500);
+}
+ 
+function fmt(s) {
+  return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+}
+ 
+function visibleCards() {
+  return [...document.querySelectorAll('.track-card')].filter(c=>c.style.display!=='none');
+}
+function nextTrack() {
+  const v=visibleCards(); if(!v.length) return;
+  const cur=v.findIndex(c=>+c.dataset.idx===currentIdx);
+  loadTrack(+v[(cur+1)%v.length].dataset.idx);
+}
+function prevTrack() {
+  const v=visibleCards(); if(!v.length) return;
+  const cur=v.findIndex(c=>+c.dataset.idx===currentIdx);
+  loadTrack(+v[(cur-1+v.length)%v.length].dataset.idx);
+}
+ 
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (!player) return;
+  if (currentIdx===-1) { loadTrack(0); return; }
+  isPlaying ? player.pauseVideo() : player.playVideo();
+});
+document.getElementById('btnNext').addEventListener('click', nextTrack);
+document.getElementById('btnPrev').addEventListener('click', prevTrack);
+ 
+document.getElementById('npProgress').addEventListener('click', function(e) {
+  if (!player||!player.getDuration) return;
+  const r=this.getBoundingClientRect();
+  player.seekTo(player.getDuration()*((e.clientX-r.left)/r.width), true);
+});
+ 
+document.getElementById('volTrack').addEventListener('click', function(e) {
+  if (!player) return;
+  const r=this.getBoundingClientRect();
+  volume=Math.round(((e.clientX-r.left)/r.width)*100);
+  player.setVolume(volume);
+  document.getElementById('volFill').style.width=volume+'%';
+});
+ 
+document.querySelectorAll('.cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const f=btn.dataset.filter;
+    let shown=0;
+    document.querySelectorAll('.track-card').forEach(card=>{
+      const show=f==='ALL'||card.dataset.genre===f;
+      card.style.display=show?'':'none';
+      if(show) shown++;
+    });
+    document.getElementById('trackCount').textContent=`// ${shown} TRACKS`;
+  });
+});
+</script>
 </body>
-
 </html>
